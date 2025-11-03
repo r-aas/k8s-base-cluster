@@ -157,10 +157,12 @@ deploy_infrastructure() {
     
     # Add helm repos
     "$TOOLS_DIR/helm" repo add jetstack https://charts.jetstack.io
+    "$TOOLS_DIR/helm" repo add argo https://argoproj.github.io/argo-helm
     "$TOOLS_DIR/helm" repo update
     
     # Create namespaces
     "$TOOLS_DIR/kubectl" create namespace cert-manager --dry-run=client -o yaml | "$TOOLS_DIR/kubectl" apply -f -
+    "$TOOLS_DIR/kubectl" create namespace argocd --dry-run=client -o yaml | "$TOOLS_DIR/kubectl" apply -f -
     
     # Install cert-manager
     "$TOOLS_DIR/helm" upgrade --install cert-manager jetstack/cert-manager \
@@ -186,7 +188,54 @@ spec:
     secretName: mkcert-ca-secret
 EOF
     
-    success "Infrastructure deployed"
+    success "cert-manager deployed"
+}
+
+# Deploy ArgoCD
+deploy_argocd() {
+    log "Deploying ArgoCD..."
+    
+    # Install ArgoCD
+    "$TOOLS_DIR/helm" upgrade --install argocd argo/argo-cd \
+        --namespace argocd \
+        --set server.service.type=ClusterIP \
+        --set server.ingress.enabled=false \
+        --wait --timeout=300s
+    
+    # Create ArgoCD Ingress with TLS
+    "$TOOLS_DIR/kubectl" apply -f - <<EOF
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server
+  namespace: argocd
+  annotations:
+    cert-manager.io/cluster-issuer: "mkcert-issuer"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - argocd.$DOMAIN
+    secretName: argocd-tls
+  rules:
+  - host: argocd.$DOMAIN
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: argocd-server
+            port:
+              number: 80
+EOF
+    
+    # Wait for ArgoCD to be ready
+    "$TOOLS_DIR/kubectl" wait --for=condition=Ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=300s
+    
+    success "ArgoCD deployed"
 }
 
 # Deploy test application
@@ -267,16 +316,20 @@ EOF
 # Show results
 show_results() {
     echo ""
-    echo "🎉 Standalone k8s-base-cluster Complete!"
-    echo "========================================"
+    echo "🎉 GitOps-Ready k8s-base-cluster Complete!"
+    echo "=========================================="
     echo ""
     echo "🏷️  Cluster: $CLUSTER_NAME"
     echo "🌐 Domain: $DOMAIN"
     echo "🔧 Tools: $TOOLS_DIR"
     echo ""
-    echo "🌐 Test URLs:"
-    echo "  HTTP:  http://standalone.$DOMAIN:${HTTP_PORT:-8080}"
-    echo "  HTTPS: https://standalone.$DOMAIN:${HTTPS_PORT:-8443}"
+    echo "🚀 GitOps Platform URLs:"
+    echo "  ArgoCD:  https://argocd.$DOMAIN:${HTTPS_PORT:-8443}"
+    echo "  Test App: https://standalone.$DOMAIN:${HTTPS_PORT:-8443}"
+    echo ""
+    echo "🔑 ArgoCD Credentials:"
+    echo "  Username: admin"
+    echo "  Password: \$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
     echo ""
     echo "🔧 Tools available in: $TOOLS_DIR"
     echo "  export PATH=\"$TOOLS_DIR:\$PATH\""
@@ -319,6 +372,7 @@ main() {
             setup_certificates
             create_cluster
             deploy_infrastructure
+            deploy_argocd
             deploy_test
             show_results
             ;;
