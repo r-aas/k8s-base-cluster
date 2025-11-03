@@ -119,11 +119,14 @@ create_cluster() {
     
     log "Using ports: HTTP=$http_port, HTTPS=$https_port"
     
-    # Create cluster (using built-in Traefik)
+    # Create cluster (using built-in Traefik + local registry + volume mounts)
+    mkdir -p ./data
     "$TOOLS_DIR/k3d" cluster create "$CLUSTER_NAME" \
         --servers 1 --agents 0 \
         --port "$http_port:80@loadbalancer" \
         --port "$https_port:443@loadbalancer" \
+        --registry-create registry.localhost:5001 \
+        --volume "$(pwd)/data:/data@server:0" \
         --wait --timeout 120s
     
     success "Cluster created on ports $http_port/$https_port"
@@ -326,6 +329,14 @@ show_results() {
     echo "🚀 GitOps Platform URLs:"
     echo "  ArgoCD:  https://argocd.$DOMAIN:${HTTPS_PORT:-8443}"
     echo "  Test App: https://standalone.$DOMAIN:${HTTPS_PORT:-8443}"
+    echo ""
+    echo "🐳 Local Registry:"
+    echo "  Registry: registry.localhost:5001"
+    echo "  Usage: docker tag image registry.localhost:5001/image"
+    echo ""
+    echo "💾 Built-in Storage:"
+    echo "  Storage Class: local-path (default)"
+    echo "  Host Mount: ./data -> /data (in containers)"
     echo ""
     echo "🔑 ArgoCD Credentials:"
     echo "  Username: admin"

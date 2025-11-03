@@ -12,6 +12,9 @@
 This creates a complete GitOps-ready Kubernetes cluster with:
 - ✅ k3d cluster with working node registration  
 - ✅ **Built-in k3s Traefik ingress controller**
+- ✅ **Local container registry** (registry.localhost:5001)
+- ✅ **Built-in persistent storage** (local-path storage class)
+- ✅ **Volume mounts** (./data -> /data in containers)
 - ✅ Automatic TLS certificates via mkcert
 - ✅ cert-manager for certificate management
 - ✅ **ArgoCD for GitOps workflow**
@@ -46,8 +49,38 @@ This deploys:
 
 - **ArgoCD**: `https://argocd.127-0-0-1.sslip.io:8443`
 - **Test App**: `https://standalone.127-0-0-1.sslip.io:8443`
+- **Local Registry**: `registry.localhost:5001`
 - **Grafana**: `https://grafana.127-0-0-1.sslip.io:8443` (after platform deployment)
 - **Prometheus**: `https://prometheus.127-0-0-1.sslip.io:8443` (after platform deployment)
+
+## Built-in Development Features
+
+**Local Container Registry:**
+```bash
+# Build and push to local registry
+docker build -t my-app .
+docker tag my-app registry.localhost:5001/my-app
+docker push registry.localhost:5001/my-app
+```
+
+**Persistent Storage:**
+```yaml
+# Use built-in storage class
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-data
+spec:
+  storageClassName: local-path
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+```
+
+**Volume Mounts:**
+- Host directory `./data` mounted to `/data` in containers
+- Perfect for development databases, logs, etc.
 
 ## ArgoCD Access
 

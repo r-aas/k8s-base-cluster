@@ -2,6 +2,9 @@
 certs/
 k8s-tools/
 
+# Development data
+data/
+
 # Temporary files
 *.tmp
 .DS_Store
