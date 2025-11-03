@@ -155,10 +155,10 @@ setup_certificates() {
 deploy_infrastructure() {
     log "Deploying infrastructure..."
     
-    # Add helm repos
-    "$TOOLS_DIR/helm" repo add jetstack https://charts.jetstack.io
-    "$TOOLS_DIR/helm" repo add argo https://argoproj.github.io/argo-helm
-    "$TOOLS_DIR/helm" repo add traefik https://traefik.github.io/charts
+    # Add helm repos (only if they don't exist)
+    "$TOOLS_DIR/helm" repo list | grep -q jetstack || "$TOOLS_DIR/helm" repo add jetstack https://charts.jetstack.io
+    "$TOOLS_DIR/helm" repo list | grep -q argo || "$TOOLS_DIR/helm" repo add argo https://argoproj.github.io/argo-helm
+    "$TOOLS_DIR/helm" repo list | grep -q traefik || "$TOOLS_DIR/helm" repo add traefik https://traefik.github.io/charts
     "$TOOLS_DIR/helm" repo update
     
     # Create namespaces

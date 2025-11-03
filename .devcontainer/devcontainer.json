@@ -1,0 +1,45 @@
+{
+  "name": "k8s-base-cluster",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "version": "latest",
+      "helm": "latest",
+      "kubectl": "latest"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "ms-vscode.vscode-yaml",
+        "redhat.vscode-yaml",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+
+  "forwardPorts": [80, 443, 8080, 8443, 9000],
+  "portsAttributes": {
+    "80": {"label": "HTTP"},
+    "443": {"label": "HTTPS"}, 
+    "8080": {"label": "HTTP-Alt"},
+    "8443": {"label": "HTTPS-Alt"},
+    "9000": {"label": "Traefik Dashboard"}
+  },
+
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postStartCommand": "bash .devcontainer/post-start.sh",
+
+  "remoteUser": "vscode",
+  "containerEnv": {
+    "CLUSTER_NAME": "codespaces-cluster",
+    "DOMAIN": "127-0-0-1.sslip.io"
+  }
+}
