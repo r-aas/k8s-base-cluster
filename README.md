@@ -11,6 +11,7 @@
 
 This creates a complete GitOps-ready Kubernetes cluster with:
 - ✅ k3d cluster with working node registration  
+- ✅ **Built-in k3s Traefik ingress controller**
 - ✅ Automatic TLS certificates via mkcert
 - ✅ cert-manager for certificate management
 - ✅ **ArgoCD for GitOps workflow**
@@ -21,6 +22,7 @@ This creates a complete GitOps-ready Kubernetes cluster with:
 
 - **Self-contained**: Downloads k3d, kubectl, helm, mkcert automatically
 - **GitOps Ready**: ArgoCD installed and configured with HTTPS
+- **Production Ingress**: Uses k3s built-in Traefik ingress controller
 - **Working TLS**: Uses mkcert for locally trusted HTTPS certificates
 - **Production-ready**: cert-manager integration for automatic certificate management
 - **Reliable**: Fixes inotify limits that cause k3s startup failures

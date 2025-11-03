@@ -119,12 +119,11 @@ create_cluster() {
     
     log "Using ports: HTTP=$http_port, HTTPS=$https_port"
     
-    # Create cluster
+    # Create cluster (using built-in Traefik)
     "$TOOLS_DIR/k3d" cluster create "$CLUSTER_NAME" \
         --servers 1 --agents 0 \
         --port "$http_port:80@loadbalancer" \
         --port "$https_port:443@loadbalancer" \
-        --k3s-arg "--disable=traefik@server:*" \
         --wait --timeout 120s
     
     success "Cluster created on ports $http_port/$https_port"
@@ -158,7 +157,6 @@ deploy_infrastructure() {
     # Add helm repos (only if they don't exist)
     "$TOOLS_DIR/helm" repo list | grep -q jetstack || "$TOOLS_DIR/helm" repo add jetstack https://charts.jetstack.io
     "$TOOLS_DIR/helm" repo list | grep -q argo || "$TOOLS_DIR/helm" repo add argo https://argoproj.github.io/argo-helm
-    "$TOOLS_DIR/helm" repo list | grep -q traefik || "$TOOLS_DIR/helm" repo add traefik https://traefik.github.io/charts
     "$TOOLS_DIR/helm" repo update
     
     # Create namespaces
@@ -239,22 +237,6 @@ EOF
     success "ArgoCD deployed"
 }
 
-# Deploy Traefik Ingress Controller
-deploy_traefik() {
-    log "Deploying Traefik ingress controller..."
-    
-    # Install Traefik
-    "$TOOLS_DIR/helm" upgrade --install traefik traefik/traefik \
-        --namespace traefik \
-        --create-namespace \
-        --set service.type=LoadBalancer \
-        --wait --timeout=300s
-    
-    # Wait for Traefik to be ready
-    "$TOOLS_DIR/kubectl" wait --for=condition=Ready pod -l app.kubernetes.io/name=traefik -n traefik --timeout=120s
-    
-    success "Traefik deployed"
-}
 
 # Deploy test application
 deploy_test() {
@@ -390,7 +372,6 @@ main() {
             setup_certificates
             create_cluster
             deploy_infrastructure
-            deploy_traefik
             deploy_argocd
             deploy_test
             show_results
