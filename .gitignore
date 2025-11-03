@@ -1,0 +1,10 @@
+# Generated certificates and tools
+certs/
+k8s-tools/
+
+# Temporary files
+*.tmp
+.DS_Store
+
+# Kubeconfig files
+kubeconfig*
