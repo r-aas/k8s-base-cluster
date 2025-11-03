@@ -158,6 +158,7 @@ deploy_infrastructure() {
     # Add helm repos
     "$TOOLS_DIR/helm" repo add jetstack https://charts.jetstack.io
     "$TOOLS_DIR/helm" repo add argo https://argoproj.github.io/argo-helm
+    "$TOOLS_DIR/helm" repo add traefik https://traefik.github.io/charts
     "$TOOLS_DIR/helm" repo update
     
     # Create namespaces
@@ -236,6 +237,23 @@ EOF
     "$TOOLS_DIR/kubectl" wait --for=condition=Ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=300s
     
     success "ArgoCD deployed"
+}
+
+# Deploy Traefik Ingress Controller
+deploy_traefik() {
+    log "Deploying Traefik ingress controller..."
+    
+    # Install Traefik
+    "$TOOLS_DIR/helm" upgrade --install traefik traefik/traefik \
+        --namespace traefik \
+        --create-namespace \
+        --set service.type=LoadBalancer \
+        --wait --timeout=300s
+    
+    # Wait for Traefik to be ready
+    "$TOOLS_DIR/kubectl" wait --for=condition=Ready pod -l app.kubernetes.io/name=traefik -n traefik --timeout=120s
+    
+    success "Traefik deployed"
 }
 
 # Deploy test application
@@ -372,6 +390,7 @@ main() {
             setup_certificates
             create_cluster
             deploy_infrastructure
+            deploy_traefik
             deploy_argocd
             deploy_test
             show_results
